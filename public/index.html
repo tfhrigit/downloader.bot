@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IG Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent: #e8445a;
+      --accent2: #ff8c42;
+      --text: #f0f0f5;
+      --muted: #6b6b85;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    /* Background blob */
+    body::before {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232,68,90,0.12) 0%, transparent 70%);
+      top: -150px; left: -150px;
+      pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,140,66,0.08) 0%, transparent 70%);
+      bottom: -100px; right: -100px;
+      pointer-events: none;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 560px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 40%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      padding: 13px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    button {
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      border-radius: 10px;
+      padding: 13px 22px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      transition: opacity 0.2s, transform 0.15s;
+      white-space: nowrap;
+    }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Status */
+    .status {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .status.loading { display: flex; background: rgba(255,140,66,0.1); color: var(--accent2); border: 1px solid rgba(255,140,66,0.2); }
+    .status.error   { display: flex; background: rgba(232,68,90,0.1); color: var(--accent); border: 1px solid rgba(232,68,90,0.2); }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,140,66,0.3);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result */
+    #result { display: none; }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: fadeUp 0.4s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      overflow: hidden;
+    }
+    .result-thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0.85;
+    }
+    .type-badge {
+      position: absolute;
+      top: 12px; left: 12px;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent2);
+    }
+
+    .result-body { padding: 20px; }
+
+    .result-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .result-type {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .result-code {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: monospace;
+    }
+
+    .dl-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .dl-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* Carousel */
+    .carousel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .carousel-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .carousel-item img {
+      width: 100%; aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+    .carousel-item .ci-footer {
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ci-type {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .ci-dl {
+      font-size: 11px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid rgba(232,68,90,0.4);
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .ci-dl:hover { background: rgba(232,68,90,0.1); }
+
+    footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">📸</div>
+        <h1>IG Downloader</h1>
+      </div>
+      <p class="subtitle">Download video & foto Instagram dengan mudah</p>
+    </header>
+
+    <div class="card">
+      <div class="input-group">
+        <input type="text" id="urlInput" placeholder="https://www.instagram.com/reel/..." />
+        <button id="fetchBtn" onclick="fetchMedia()">Ambil</button>
+      </div>
+      <div class="status loading" id="statusLoading">
+        <div class="spinner"></div>
+        <span>Mengambil media...</span>
+      </div>
+      <div class="status error" id="statusError">
+        <span>⚠️</span>
+        <span id="errorMsg">Terjadi kesalahan</span>
+      </div>
+    </div>
+
+    <div id="result"></div>
+
+    <footer>
+      Hanya untuk akun <span>publik</span> · Self-hosted API
+    </footer>
+  </div>
+
+  <script>
+    function setStatus(state, msg = '') {
+      document.getElementById('statusLoading').style.display = state === 'loading' ? 'flex' : 'none';
+      const errEl = document.getElementById('statusError');
+      if (state === 'error') {
+        errEl.style.display = 'flex';
+        document.getElementById('errorMsg').textContent = msg;
+      } else {
+        errEl.style.display = 'none';
+      }
+    }
+
+    function renderResult(data) {
+      const el = document.getElementById('result');
+      el.style.display = 'block';
+
+      if (data.type === 'video') {
+        el.innerHTML = `
+          <div class="result-card">
+            ${data.thumbnail ? `
+            <div class="result-thumb">
+              <img src="${data.thumbnail}" alt="thumbnail" />
+              <span class="type-badge">▶ Video</span>
+            </div>` : ''}
+            <div class="result-body">
+              <div class="result-meta">
+                <span class="result-type">Video Instagram</span>
+                <span class="result-code">${data.shortcode}</span>
+              </div>
+              <a class="dl-btn" href="/stream?url=${encodeURIComponent(document.getElementById('urlInput').value)}" download>
+                ⬇ Download Video (.mp4)
+              </a>
+            </div>
+          </div>`;
+      } else if (data.type === 'image') {
+        el.innerHTML = `
+          <div class="result-card">
+            ${data.url ? `
+            <div class="result-thumb">
+              <img src="${data.url}" alt="image" />
+              <span class="type-badge">🖼 Foto</span>
+            </div>` : ''}
+            <div class="result-body">
+              <div class="result-meta">
+                <span class="result-type">Foto Instagram</span>
+                <span class="result-code">${data.shortcode}</span>
+              </div>
+              <a class="dl-btn" href="/stream?url=${encodeURIComponent(document.getElementById('urlInput').value)}" download>
+                ⬇ Download Foto (.jpg)
+              </a>
+            </div>
+          </div>`;
+      } else if (data.type === 'carousel') {
+        const items = data.medias.map((m, i) => `
+          <div class="carousel-item">
+            <img src="${m.thumbnail || m.url}" alt="media ${i+1}" />
+            <div class="ci-footer">
+              <span class="ci-type">${m.type === 'video' ? '▶ Video' : '🖼 Foto'}</span>
+              <a class="ci-dl" href="/stream?url=${encodeURIComponent(document.getElementById('urlInput').value)}&index=${i}" download>
+                ⬇ Download
+              </a>
+            </div>
+          </div>`).join('');
+
+        el.innerHTML = `
+          <div class="result-card">
+            <div class="result-body">
+              <div class="result-meta">
+                <span class="result-type">Carousel (${data.medias.length} media)</span>
+                <span class="result-code">${data.shortcode}</span>
+              </div>
+              <div class="carousel-grid">${items}</div>
+            </div>
+          </div>`;
+      }
+    }
+
+    async function fetchMedia() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) { setStatus('error', 'Masukkan URL Instagram terlebih dahulu'); return; }
+
+      document.getElementById('fetchBtn').disabled = true;
+      document.getElementById('result').style.display = 'none';
+      setStatus('loading');
+
+      try {
+        const res = await fetch('/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const json = await res.json();
+        setStatus('idle');
+        if (json.success) {
+          renderResult(json.data);
+        } else {
+          setStatus('error', json.error || 'Gagal mengambil media');
+        }
+      } catch (e) {
+        setStatus('error', 'Tidak bisa konek ke server');
+      } finally {
+        document.getElementById('fetchBtn').disabled = false;
+      }
+    }
+
+    // Enter key
+    document.getElementById('urlInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') fetchMedia();
+    });
+  </script>
+</body>
+</html>
